@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import postsRouter from './routes/posts.js';
+import prisma from './prisma.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -8,8 +9,22 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
+app.get('/api/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'error',
+      database: 'disconnected',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 app.use('/api/posts', postsRouter);
